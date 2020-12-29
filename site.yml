@@ -1,0 +1,9 @@
+#!/usr/bin/env ansible-playbook
+---
+- hosts: 'all'
+  roles:
+  - 'common'
+  - 'admin'
+  - 'docker_ce'
+  - 'age'
+  - 'updates'

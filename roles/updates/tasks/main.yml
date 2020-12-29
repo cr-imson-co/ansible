@@ -1,0 +1,32 @@
+---
+# package management playbook
+
+- name: 'update package cache'
+  become: true
+  apt:
+    update_cache: 'yes'
+    force_apt_get: 'yes'
+    cache_valid_time: 3600
+
+- name: 'update packages'
+  become: true
+  apt:
+    upgrade: 'dist'
+    force_apt_get: 'yes'
+
+- name: 'check if reboot required'
+  stat:
+    path: '/var/run/reboot-required'
+    get_md5: 'no'
+  register: 'reboot_required'
+
+- name: 'reboot server'
+  become: true
+  reboot:
+    msg: 'reboot initiated by ansible due to distro-indicated update requirement'
+    connect_timeout: 5
+    reboot_timeout: 300
+    pre_reboot_delay: 0
+    post_reboot_delay: 60
+    test_command: 'uptime'
+  when: 'reboot_required.stat.exists'

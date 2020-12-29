@@ -1,0 +1,35 @@
+---
+# installs docker-ce to an ARM system (raspberry pi)
+#
+# unfortunately, adding a deb repo isn't supported out of the box,
+#   and docker's official guidance is to use the shell script.
+#
+# yes, it's damn stupid, but that's docker.
+
+- name: 'check if docker is installed'
+  stat:
+    path: '/usr/bin/docker'
+  register: 'docker_installed'
+
+- name: 'get docker installer'
+  get_url:
+    url: 'https://get.docker.com/'
+    dest: '/tmp/docker-installer.sh'
+    mode: '0755'
+  register: 'docker_installer'
+  when: 'not docker_installed.stat.exists'
+
+- name: 'run docker installer' # noqa 503
+  shell: '/tmp/docker-installer.sh' # noqa 305
+  args:
+    chdir: '/tmp/'
+  when: 'docker_installer.changed'
+
+- name: 'add ansible user to docker group'
+  become: true
+  user:
+    name: 'devoops'
+    append: true
+    state: 'present'
+    groups:
+      - 'docker'

@@ -1,0 +1,154 @@
+---
+
+- name: 'manage admin group'
+  become: true
+  group:
+    name: 'katana'
+    state: 'present'
+
+- name: 'manage admin user'
+  become: true
+  user:
+    name: 'katana'
+    group: 'katana'
+    groups:
+      - 'sudo'
+      - 'adm'
+      - 'systemd-journal'
+      - 'staff'
+      - 'ssh-enabled'
+      - 'devops'
+      - 'docker'
+    password: '!'
+    shell: '/bin/zsh'
+    create_home: 'yes'
+    state: 'present'
+    update_password: 'on_create'
+
+- name: 'manage admin user .ssh directory'
+  become: true
+  file:
+    state: 'directory'
+    path: '/home/katana/.ssh/'
+    owner: 'katana'
+    group: 'katana'
+    mode: '0700'
+
+# ...let's make sure the SSH keys are up to date.
+- name: 'get latest admin keys checksum'
+  shell:
+    cmd: 'curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/katana_keys?ref=master" | grep x-gitlab-content-sha256 | awk "{print \$2}"'
+    warn: false
+  register: 'admin_keys_checksum'
+
+- name: 'get local admin keys checksum'
+  become: true
+  stat:
+    path: '/home/katana/.ssh/authorized_keys'
+    checksum_algorithm: 'sha256'
+  register: 'local_admin_keys_checksum'
+  changed_when: 'local_admin_keys_checksum.stat.checksum != admin_keys_checksum.stdout'
+
+- name: 'ensure admin keys are latest'
+  become: true
+  become_user: 'katana'
+  get_url:
+    url: 'https://gitlab.cr.imson.co/cr.imson.co/ssh-keys/-/raw/master/katana_keys'
+    dest: '/home/katana/.ssh/authorized_keys'
+    owner: 'katana'
+    group: 'katana'
+    mode: '0700'
+    # todo: reuse the checksum from admin_keys_checksum.stdout somehow
+    # checksum: ''
+  when: 'local_admin_keys_checksum.changed'
+
+# let's deploy oh-my-zsh
+- name: 'get oh-my-zsh for admin' # noqa 401
+  become: true
+  become_user: 'katana'
+  git:
+    accept_hostkey: 'yes'
+    repo: 'https://github.com/ohmyzsh/ohmyzsh.git'
+    dest: '/home/katana/.oh-my-zsh'
+    clone: 'yes'
+    update: 'no'
+
+- name: 'get dotfiles for admin' # noqa 401
+  become: true
+  become_user: 'katana'
+  git:
+    repo: 'https://github.com/damianb/dotfiles.git'
+    dest: '/home/katana/dotfiles'
+    accept_hostkey: 'yes'
+    clone: 'yes'
+    update: 'no'
+  register: 'dotfiles'
+
+- name: 'purge bashrc file (in preparation of stowing)'
+  become: true
+  file:
+    path: '/home/katana/.bashrc'
+    state: 'absent'
+  when: 'dotfiles.before == None'
+
+- name: 'purge zshrc file (in preparation of stowing)'
+  become: true
+  file:
+    path: '/home/katana/.zshrc'
+    state: 'absent'
+  when: 'dotfiles.before == None'
+
+- name: 'deploy dotfiles for admin'
+  become: true
+  become_user: 'katana'
+  command:
+    chdir: '/home/katana/dotfiles/'
+    cmd: 'stow bash git tmux zsh'
+  when: 'dotfiles.before == None'
+
+# and now, customizing root...
+- name: 'get oh-my-zsh for admin'  # noqa 401
+  become: true
+  git:
+    accept_hostkey: 'yes'
+    repo: 'https://github.com/ohmyzsh/ohmyzsh.git'
+    dest: '/root/.oh-my-zsh'
+    clone: 'yes'
+    update: 'no'
+
+- name: 'get dotfiles for admin'  # noqa 401
+  become: true
+  git:
+    repo: 'https://github.com/damianb/dotfiles.git'
+    dest: '/root/dotfiles'
+    accept_hostkey: 'yes'
+    clone: 'yes'
+    update: 'no'
+  register: 'root_dotfiles'
+
+- name: 'purge bashrc file (in preparation of stowing)'
+  become: true
+  file:
+    path: '/root/.bashrc'
+    state: 'absent'
+  when: 'root_dotfiles.before == None'
+
+- name: 'purge zshrc file (in preparation of stowing)'
+  become: true
+  file:
+    path: '/root/.zshrc'
+    state: 'absent'
+  when: 'root_dotfiles.before == None'
+
+- name: 'deploy dotfiles for admin'
+  become: true
+  command:
+    chdir: '/root/dotfiles/'
+    cmd: 'stow bash git tmux zsh'
+  when: 'root_dotfiles.before == None'
+
+- name: 'switch root to zsh'
+  become: true
+  user:
+    name: 'root'
+    shell: '/bin/zsh'
