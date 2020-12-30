@@ -79,7 +79,7 @@
   register: 'admin_zshrc'
 
 # let's deploy oh-my-zsh
-- name: 'configure root user'
+- name: 'configure admin user'
   block:
     - name: 'get oh-my-zsh for admin' # noqa 401
       become: true
