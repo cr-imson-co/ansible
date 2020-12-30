@@ -18,7 +18,6 @@
       - 'staff'
       - 'ssh-enabled'
       - 'devops'
-      - 'docker'
     password: '!'
     shell: '/bin/zsh'
     create_home: 'yes'
@@ -35,9 +34,12 @@
     mode: '0700'
 
 # ...let's make sure the SSH keys are up to date.
-- name: 'get latest admin keys checksum'
+- name: 'get latest admin keys checksum' # noqa 301
   shell:
-    cmd: 'curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/katana_keys?ref=master" | grep x-gitlab-content-sha256 | awk "{print \$2}"'
+    cmd: >
+      curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/katana_keys?ref=master" \
+        | grep x-gitlab-content-sha256 \
+        | awk "{print \$2}"
     warn: false
   register: 'admin_keys_checksum'
 
@@ -49,7 +51,7 @@
   register: 'local_admin_keys_checksum'
   changed_when: 'local_admin_keys_checksum.stat.checksum != admin_keys_checksum.stdout'
 
-- name: 'ensure admin keys are latest'
+- name: 'ensure admin keys are latest' # noqa 503
   become: true
   become_user: 'katana'
   get_url:

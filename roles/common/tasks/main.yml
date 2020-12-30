@@ -9,9 +9,12 @@
     group: 'devoops'
     mode: '0700'
 
-- name: 'get latest ansible keys checksum'
+- name: 'get latest ansible keys checksum' # noqa 301
   shell:
-    cmd: 'curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/ansible_keys?ref=master" | grep x-gitlab-content-sha256 | awk "{print \$2}"'
+    cmd: >
+      curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/katana_keys?ref=master" \
+        | grep x-gitlab-content-sha256 \
+        | awk "{print \$2}"
     warn: false
   register: 'ansible_keys_checksum'
 
@@ -22,7 +25,7 @@
   register: 'local_ansible_keys_checksum'
   changed_when: 'local_ansible_keys_checksum.stat.checksum != ansible_keys_checksum.stdout'
 
-- name: 'ensure ansible keys are latest'
+- name: 'ensure ansible keys are latest' # noqa 503
   get_url:
     url: 'https://gitlab.cr.imson.co/cr.imson.co/ssh-keys/-/raw/master/ansible_keys'
     dest: '/home/devoops/.ssh/authorized_keys'
