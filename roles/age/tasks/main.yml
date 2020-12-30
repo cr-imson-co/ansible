@@ -8,46 +8,45 @@
     path: '/usr/local/bin/age'
   register: 'age_installed'
 
-- name: 'get age repo'
-  git:
-    accept_hostkey: 'yes'
-    version: 'v1.0.0-beta5'
-    repo: 'https://github.com/FiloSottile/age.git'
-    dest: '/home/devoops/age/'
-    clone: 'yes'
-    update: 'no'
-    depth: 1
-  register: 'age_repo'
+- name: 'install age'
+  block:
+    - name: 'get age repo'
+      git:
+        accept_hostkey: 'yes'
+        version: 'v1.0.0-beta5'
+        repo: 'https://github.com/FiloSottile/age.git'
+        dest: '/home/devoops/age/'
+        clone: 'yes'
+        update: 'no'
+        depth: 1
+      register: 'age_repo'
+
+    - name: 'compile age'
+      shell:
+        chdir: '/home/devoops/age/'
+        cmd: 'docker run --rm -v "$PWD":/mnt -w /mnt golang:1.15 go build -o . ./cmd/...'
+      register: 'age_compile'
+
+    - name: 'copy age binary'
+      become: true
+      copy:
+        remote_src: true
+        src: '/home/devoops/age/age'
+        dest: '/usr/local/bin/age'
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
+    - name: 'copy age-keygen binary'
+      become: true
+      copy:
+        remote_src: true
+        src: '/home/devoops/age/age-keygen'
+        dest: '/usr/local/bin/age-keygen'
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
   when: 'not age_installed.stat.exists'
-
-- name: 'compile age'
-  shell:
-    chdir: '/home/devoops/age/'
-    cmd: 'docker run --rm -v "$PWD":/mnt -w /mnt golang:1.15 go build -o . ./cmd/...'
-  register: 'age_compile'
-  when: 'age_repo.git is defined'
-
-- name: 'copy age binary'
-  become: true
-  copy:
-    remote_src: true
-    src: '/home/devoops/age/age'
-    dest: '/usr/local/bin/age'
-    owner: 'root'
-    group: 'root'
-    mode: '0755'
-  when: 'age_compile.shell is defined'
-
-- name: 'copy age-keygen binary'
-  become: true
-  copy:
-    remote_src: true
-    src: '/home/devoops/age/age-keygen'
-    dest: '/usr/local/bin/age-keygen'
-    owner: 'root'
-    group: 'root'
-    mode: '0755'
-  when: 'age_compile.shell is defined'
 
 - name: 'cleanup age repo'
   file:

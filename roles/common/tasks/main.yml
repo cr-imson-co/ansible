@@ -12,7 +12,7 @@
 - name: 'get latest ansible keys checksum' # noqa 301
   shell:
     cmd: >
-      curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/katana_keys?ref=master" \
+      curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/ansible_keys?ref=master" \
         | grep x-gitlab-content-sha256 \
         | awk "{print \$2}"
     warn: false
@@ -41,7 +41,7 @@
   apt:
     install_recommends: 'no'
     name:
-    - 'acl'
+    - 'acl' # needed for docker-ce apparently
     - 'git'
     - 'htop'
     - 'zsh'
@@ -49,14 +49,11 @@
     state: 'present'
 
 # removing some dumb raspi-os files
-- name: 'remove sshpwd.sh'
+- name: 'cleanup unneeded profile.d files'
   become: true
   file:
-    path: '/etc/profile.d/sshpwd.sh'
+    path: '/etc/profile.d/{{ item }}'
     state: 'absent'
-
-- name: 'remove wifi-check.sh'
-  become: true
-  file:
-    path: '/etc/profile.d/wifi-check.sh'
-    state: 'absent'
+  with_items:
+    - 'sshpwd.sh'
+    - 'wifi-check.sh'

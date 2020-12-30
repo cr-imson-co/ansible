@@ -1,0 +1,99 @@
+---
+# installs gitlab-runner to an ARM system (raspberry pi)
+#
+# WHY DOES EVERYTHING WANT CURL PIPED TO BASH. STOP IT!
+
+- name: 'check if gitlab-runner is installed'
+  stat:
+    path: '/usr/bin/gitlab-runner'
+  register: 'gitlab_runner_installed'
+
+- name: 'install gitlab-runner'
+  block:
+    - name: 'get gitlab-runner repository installer'
+      get_url:
+        url: 'https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh'
+        dest: '/tmp/gitlab-runner-installer.sh'
+        mode: '0755'
+
+    - name: 'run gitlab-runner repository installer' # noqa 503
+      become: true
+      shell: '/tmp/gitlab-runner-installer.sh' # noqa 305
+      args:
+        chdir: '/tmp/'
+
+    - name: 'add apt pinning for gitlab-runner package'
+      become: true
+      copy:
+        src: 'pin-gitlab-runner.pref'
+        dest: '/etc/apt/preferences.d/pin-gitlab-runner.pref'
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
+    - name: 'install gitlab-runner'
+      become: true
+      apt:
+        install_recommends: 'no'
+        name:
+        - 'gitlab-runner'
+        state: 'present'
+      environment:
+        GITLAB_RUNNER_DISABLE_SKEL: 'true'
+
+    - name: 'cleanup gitlab-runner installer'
+      file:
+        path: '/tmp/gitlab-runner-installer.sh'
+        state: 'absent'
+  when: 'not gitlab_runner_installed.stat.exists'
+
+- name: 'unregister gitlab-runner'
+  block:
+    - name: 'stop gitlab-runner'
+      become: true
+      service:
+        name: 'gitlab-runner'
+        state: 'stopped'
+    - name: 'remove gitlab-runner configuration'
+      become: true
+      file:
+        path: '/etc/gitlab-runner/config.toml'
+        state: 'absent'
+  when: 'reregister_gitlab_runners is defined'
+
+- name: 'check if gitlab-runner is registered'
+  become: true
+  stat:
+    path: '/etc/gitlab-runner/config.toml'
+  register: 'gitlab_runner_registered'
+
+- name: 'register gitlab-runner'
+  block:
+    - name: 'register gitlab-runner with gitlab'
+      become: true
+      command: >
+        gitlab-runner register
+          --non-interactive
+          --url "https://gitlab.cr.imson.co/"
+          --registration-token "{{ gitlab_runner_registration_token }}"
+          --description "{{ ansible_hostname }}-gl-runner"
+          --tag-list "{{ group_names | difference(['all', 'ungrouped']) | join(',') }}"
+          --executor "docker"
+          --access-level="not_protected"
+          --run-untagged="false"
+          --locked="false"
+          {% if 'dind' in groups %}
+          --docker-privileged
+          --docker-volumes "/certs/client"
+          --docker-image "docker:20"
+          {% else %}
+          --docker-image "alpine:latest"
+          {% endif %}
+      throttle: 1
+
+    - name: 'ensure gitlab-runner is started'
+      become: true
+      service:
+        name: 'gitlab-runner'
+        state: 'started'
+  when: 'not gitlab_runner_registered.stat.exists'

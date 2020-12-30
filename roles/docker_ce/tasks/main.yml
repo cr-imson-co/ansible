@@ -6,24 +6,30 @@
 #
 # yes, it's damn stupid, but that's docker.
 
-- name: 'check if docker is installed'
+- name: 'check if docker-ce is installed'
   stat:
     path: '/usr/bin/docker'
   register: 'docker_installed'
 
-- name: 'get docker installer'
-  get_url:
-    url: 'https://get.docker.com/'
-    dest: '/tmp/docker-installer.sh'
-    mode: '0755'
-  register: 'docker_installer'
-  when: 'not docker_installed.stat.exists'
+- name: 'install docker-ce'
+  block:
+    - name: 'get docker installer'
+      get_url:
+        url: 'https://get.docker.com/'
+        dest: '/tmp/docker-installer.sh'
+        mode: '0755'
+      register: 'docker_installer'
 
-- name: 'run docker installer' # noqa 503
-  shell: '/tmp/docker-installer.sh' # noqa 305
-  args:
-    chdir: '/tmp/'
-  when: 'docker_installer.changed'
+    - name: 'run docker installer' # noqa 503
+      shell: '/tmp/docker-installer.sh' # noqa 305
+      args:
+        chdir: '/tmp/'
+
+    - name: 'cleanup docker installer'
+      file:
+        path: '/tmp/docker-installer.sh'
+        state: 'absent'
+  when: 'not docker_installed.stat.exists'
 
 - name: 'add ansible user to docker group'
   become: true

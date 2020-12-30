@@ -4,6 +4,20 @@
   roles:
   - 'common'
   - 'admin'
+
+- hosts: 'docker'
+  roles:
   - 'docker_ce'
   - 'age'
+
+- hosts: 'glrunner'
+  roles:
+  - 'gitlab_runner'
+
+- hosts: 'dind'
+  roles:
+  - 'gitlab_runner'
+
+- hosts: 'all'
+  roles:
   - 'updates'

@@ -11,6 +11,19 @@
   user:
     name: 'katana'
     group: 'katana'
+    password: '!'
+    shell: '/bin/zsh'
+    create_home: 'yes'
+    state: 'present'
+    update_password: 'on_create'
+
+# note: this is split into a separate task because we don't want to constantly pinball
+#   the "docker" group off and back on to the admin user.
+- name: 'manage admin user groups'
+  become: true
+  user:
+    name: 'katana'
+    append: true
     groups:
       - 'sudo'
       - 'adm'
@@ -18,11 +31,6 @@
       - 'staff'
       - 'ssh-enabled'
       - 'devops'
-    password: '!'
-    shell: '/bin/zsh'
-    create_home: 'yes'
-    state: 'present'
-    update_password: 'on_create'
 
 - name: 'manage admin user .ssh directory'
   become: true
@@ -64,93 +72,104 @@
     # checksum: ''
   when: 'local_admin_keys_checksum.changed'
 
-# let's deploy oh-my-zsh
-- name: 'get oh-my-zsh for admin' # noqa 401
+- name: 'determine if admin user has been configured'
   become: true
-  become_user: 'katana'
-  git:
-    accept_hostkey: 'yes'
-    repo: 'https://github.com/ohmyzsh/ohmyzsh.git'
-    dest: '/home/katana/.oh-my-zsh'
-    clone: 'yes'
-    update: 'no'
-
-- name: 'get dotfiles for admin' # noqa 401
-  become: true
-  become_user: 'katana'
-  git:
-    repo: 'https://github.com/damianb/dotfiles.git'
-    dest: '/home/katana/dotfiles'
-    accept_hostkey: 'yes'
-    clone: 'yes'
-    update: 'no'
-  register: 'dotfiles'
-
-- name: 'purge bashrc file (in preparation of stowing)'
-  become: true
-  file:
-    path: '/home/katana/.bashrc'
-    state: 'absent'
-  when: 'dotfiles.before == None'
-
-- name: 'purge zshrc file (in preparation of stowing)'
-  become: true
-  file:
+  stat:
     path: '/home/katana/.zshrc'
-    state: 'absent'
-  when: 'dotfiles.before == None'
+  register: 'admin_zshrc'
 
-- name: 'deploy dotfiles for admin'
-  become: true
-  become_user: 'katana'
-  command:
-    chdir: '/home/katana/dotfiles/'
-    cmd: 'stow bash git tmux zsh'
-  when: 'dotfiles.before == None'
+# let's deploy oh-my-zsh
+- name: 'configure root user'
+  block:
+    - name: 'get oh-my-zsh for admin' # noqa 401
+      become: true
+      become_user: 'katana'
+      git:
+        accept_hostkey: 'yes'
+        repo: 'https://github.com/ohmyzsh/ohmyzsh.git'
+        dest: '/home/katana/.oh-my-zsh'
+        clone: 'yes'
+        update: 'no'
+
+    - name: 'get dotfiles for admin' # noqa 401
+      become: true
+      become_user: 'katana'
+      git:
+        repo: 'https://github.com/damianb/dotfiles.git'
+        dest: '/home/katana/dotfiles'
+        accept_hostkey: 'yes'
+        clone: 'yes'
+        update: 'no'
+
+    - name: 'purge bashrc file (in preparation of stowing)'
+      become: true
+      file:
+        path: '/home/katana/.bashrc'
+        state: 'absent'
+
+    - name: 'purge zshrc file (in preparation of stowing)'
+      become: true
+      file:
+        path: '/home/katana/.zshrc'
+        state: 'absent'
+
+    - name: 'deploy dotfiles for admin'
+      become: true
+      become_user: 'katana'
+      command:
+        chdir: '/home/katana/dotfiles/'
+        cmd: 'stow bash git tmux zsh'
+  when: 'not admin_zshrc.stat.exists'
+
 
 # and now, customizing root...
-- name: 'get oh-my-zsh for admin'  # noqa 401
+- name: 'determine if root has been configured'
   become: true
-  git:
-    accept_hostkey: 'yes'
-    repo: 'https://github.com/ohmyzsh/ohmyzsh.git'
-    dest: '/root/.oh-my-zsh'
-    clone: 'yes'
-    update: 'no'
-
-- name: 'get dotfiles for admin'  # noqa 401
-  become: true
-  git:
-    repo: 'https://github.com/damianb/dotfiles.git'
-    dest: '/root/dotfiles'
-    accept_hostkey: 'yes'
-    clone: 'yes'
-    update: 'no'
-  register: 'root_dotfiles'
-
-- name: 'purge bashrc file (in preparation of stowing)'
-  become: true
-  file:
-    path: '/root/.bashrc'
-    state: 'absent'
-  when: 'root_dotfiles.before == None'
-
-- name: 'purge zshrc file (in preparation of stowing)'
-  become: true
-  file:
+  stat:
     path: '/root/.zshrc'
-    state: 'absent'
-  when: 'root_dotfiles.before == None'
+  register: 'root_zshrc'
 
-- name: 'deploy dotfiles for admin'
-  become: true
-  command:
-    chdir: '/root/dotfiles/'
-    cmd: 'stow bash git tmux zsh'
-  when: 'root_dotfiles.before == None'
+- name: 'configure root user'
+  block:
+    - name: 'get oh-my-zsh for root'  # noqa 401
+      become: true
+      git:
+        accept_hostkey: 'yes'
+        repo: 'https://github.com/ohmyzsh/ohmyzsh.git'
+        dest: '/root/.oh-my-zsh'
+        clone: 'yes'
+        update: 'no'
 
-- name: 'switch root to zsh'
-  become: true
-  user:
-    name: 'root'
-    shell: '/bin/zsh'
+    - name: 'get dotfiles for root'  # noqa 401
+      become: true
+      git:
+        repo: 'https://github.com/damianb/dotfiles.git'
+        dest: '/root/dotfiles'
+        accept_hostkey: 'yes'
+        clone: 'yes'
+        update: 'no'
+
+    - name: 'purge bashrc file (in preparation of stowing)'
+      become: true
+      file:
+        path: '/root/.bashrc'
+        state: 'absent'
+
+    - name: 'purge zshrc file (in preparation of stowing)'
+      become: true
+      file:
+        path: '/root/.zshrc'
+        state: 'absent'
+
+    - name: 'deploy dotfiles for root'
+      become: true
+      command:
+        chdir: '/root/dotfiles/'
+        cmd: 'stow bash git tmux zsh'
+
+    - name: 'switch root to zsh'
+      become: true
+      user:
+        name: 'root'
+        shell: '/bin/zsh'
+  when: 'not root_zshrc.stat.exists'
