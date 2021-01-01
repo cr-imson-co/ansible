@@ -1,0 +1,17 @@
+image: 
+  name: 'docker.cr.imson.co/ansible-lint:latest'
+  entrypoint: ['']
+
+
+stages:
+ - 'lint'
+
+lint:
+  stage: 'lint'
+  tags:
+    - 'docker'
+    - 'glrunner'
+  script:
+    - 'ansible-lint site.yml'
+  only:
+    - 'branches'
