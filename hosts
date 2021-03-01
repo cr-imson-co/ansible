@@ -5,30 +5,30 @@ all:
     #     hl0pi4kub01.cr.imson.co:
     #     hl0pi4kub02.cr.imson.co:
     #     hl0pi4kub03.cr.imson.co:
-    #     # hl0pi4kub01.cr.imson.co:
+    #     hl0pi4kub04.cr.imson.co:
     armv7:
       hosts:
         hl0pi4kub01.cr.imson.co:
         hl0pi4kub02.cr.imson.co:
         hl0pi4kub03.cr.imson.co:
-        # hl0pi4kub01.cr.imson.co:
+        hl0pi4kub04.cr.imson.co:
     pi4:
       hosts:
         hl0pi4kub01.cr.imson.co:
         hl0pi4kub02.cr.imson.co:
         hl0pi4kub03.cr.imson.co:
-        # hl0pi4kub01.cr.imson.co:
+        hl0pi4kub04.cr.imson.co:
     docker:
       hosts:
         hl0pi4kub01.cr.imson.co:
         hl0pi4kub02.cr.imson.co:
         hl0pi4kub03.cr.imson.co:
-        # hl0pi4kub01.cr.imson.co:
+        hl0pi4kub04.cr.imson.co:
     glrunner:
       hosts:
         hl0pi4kub02.cr.imson.co:
         hl0pi4kub03.cr.imson.co:
-        # hl0pi4kub01.cr.imson.co:
+        hl0pi4kub04.cr.imson.co:
     # docker-in-docker configuration for gitlab-runners
     #   (provides docker running in privileged mode, for now)
     dind:

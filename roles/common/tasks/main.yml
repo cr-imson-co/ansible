@@ -57,3 +57,26 @@
   with_items:
     - 'sshpwd.sh'
     - 'wifi-check.sh'
+
+- name: 'disable the vscode repository'
+  become: true
+  lineinfile:
+    dest: '/etc/apt/sources.list.d/vscode.list'
+    regexp: '^(deb\s.+)'
+    line: '# \1'
+    backrefs: 'yes'
+    state: 'present'
+
+- name: 'prevent the vscode repository file from being modified'
+  become: true
+  file:
+    path: '/etc/apt/sources.list.d/vscode.list'
+    attributes: '+i'
+  register: vscode_chattr
+  changed_when: "'i' not in vscode_chattr.diff.before.attributes"
+
+- name: 'remove the microsoft gpg key'
+  become: true
+  file:
+    path: '/etc/apt/trusted.gpg.d/microsoft.gpg'
+    state: 'absent'

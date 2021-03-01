@@ -63,8 +63,9 @@
 
 - name: 'check if gitlab-runner is registered'
   become: true
-  stat:
-    path: '/etc/gitlab-runner/config.toml'
+  command: 'grep "\[\[runners\]\]" /etc/gitlab-runner/config.toml'
+  failed_when: false
+  changed_when: 'gitlab_runner_registered.rc != 0'
   register: 'gitlab_runner_registered'
 
 - name: 'register gitlab-runner'
@@ -96,4 +97,4 @@
       service:
         name: 'gitlab-runner'
         state: 'started'
-  when: 'not gitlab_runner_registered.stat.exists'
+  when: 'gitlab_runner_registered.changed'

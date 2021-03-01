@@ -57,7 +57,7 @@
     path: '/home/katana/.ssh/authorized_keys'
     checksum_algorithm: 'sha256'
   register: 'local_admin_keys_checksum'
-  changed_when: 'local_admin_keys_checksum.stat.checksum != admin_keys_checksum.stdout'
+  changed_when: 'local_admin_keys_checksum.stat.checksum is not defined or local_admin_keys_checksum.stat.checksum != admin_keys_checksum.stdout'
 
 - name: 'ensure admin keys are latest' # noqa 503
   become: true
