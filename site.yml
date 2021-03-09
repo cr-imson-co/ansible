@@ -14,9 +14,9 @@
   roles:
   - 'gitlab_runner'
 
-- hosts: 'dind'
+- hosts: 'kube'
   roles:
-  - 'gitlab_runner'
+  - 'kube'
 
 - hosts: 'all'
   roles:
