@@ -6,6 +6,14 @@
 #
 # yes, it's damn stupid, but that's docker.
 
+- name: 'install docker-ce dependencies'
+  become: true
+  apt:
+    install_recommends: 'no'
+    name:
+    - 'acl'
+    state: 'present'
+
 - name: 'check if docker-ce is installed'
   stat:
     path: '/usr/bin/docker'

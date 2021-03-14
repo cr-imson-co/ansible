@@ -1,0 +1,58 @@
+---
+
+- name: 'manage ssh-enabled group'
+  become: true
+  group:
+    name: 'ssh-enabled'
+    state: 'present'
+
+- name: 'manage sshd config'
+  become: true
+  copy:
+    dest: '/etc/ssh/sshd_config'
+    content: |
+      # cr.imson.co - custom sshd config options
+      Port 4
+      Protocol 2
+      UsePAM yes
+      AllowGroups ssh-enabled
+      Compression yes
+      DebianBanner no
+      DisableForwarding yes
+      IgnoreRhosts yes
+      PrintMotd no
+      PasswordAuthentication no
+      PermitEmptyPasswords no
+      PermitRootLogin no
+      MaxSessions 5
+      MaxAuthTries 3
+      X11Forwarding no
+      AcceptEnv LANG
+      AcceptEnv LC_*
+      Subsystem sftp /usr/lib/openssh/sftp-server
+      ChallengeResponseAuthentication no
+
+- name: 'manage motd'
+  become: true
+  copy:
+    dest: '/etc/motd'
+    content: |
+      -------------------------------------------------------------------------------
+                      UNAUTHORIZED ACCESS TO THIS DEVICE IS PROHIBITED
+
+      -------------------------------------------------------------------------------
+
+            You must have explicit, authorized permission to access this device.
+              Unauthorized attempts and actions to access or use this system may
+                        result in civil and/or criminal penalties.
+
+            Any activities performed on this device may be logged and monitored.
+
+      -------------------------------------------------------------------------------
+
+- name: 'restart sshd service'
+  become: true
+  service:
+    name: 'ssh'
+    state: 'restarted'
+    enabled: 'yes'

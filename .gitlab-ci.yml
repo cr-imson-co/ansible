@@ -1,7 +1,6 @@
-image: 
+image:
   name: 'docker.cr.imson.co/ansible-lint:latest'
   entrypoint: ['']
-
 
 stages:
  - 'lint'

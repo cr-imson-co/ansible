@@ -1,0 +1,41 @@
+# removing some dumb raspi-os files
+- name: 'cleanup unneeded profile.d files'
+  become: true
+  file:
+    path: '/etc/profile.d/{{ item }}'
+    state: 'absent'
+  with_items:
+    - 'sshpwd.sh'
+    - 'wifi-check.sh'
+
+- name: 'check if microsoft repository exists'
+  stat:
+    path: '/etc/apt/sources.list.d/vscode.list'
+    get_md5: 'no'
+  register: 'ms_repo_present'
+
+- name: 'disable microsoft repository metadata'
+  block:
+    - name: 'disable the vscode repository'
+      become: true
+      lineinfile:
+        dest: '/etc/apt/sources.list.d/vscode.list'
+        regexp: '^(deb\s.+)'
+        line: '# \1'
+        backrefs: 'yes'
+        state: 'present'
+
+    - name: 'prevent the vscode repository file from being modified'
+      become: true
+      file:
+        path: '/etc/apt/sources.list.d/vscode.list'
+        attributes: '+i'
+      register: vscode_chattr
+      changed_when: "'i' not in vscode_chattr.diff.before.attributes"
+
+    - name: 'remove the microsoft gpg key'
+      become: true
+      file:
+        path: '/etc/apt/trusted.gpg.d/microsoft.gpg'
+        state: 'absent'
+  when: 'ms_repo_present.stat.exists'

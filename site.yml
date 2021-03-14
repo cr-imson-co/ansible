@@ -4,20 +4,25 @@
   roles:
   - 'common'
   - 'admin'
+  - 'ansible'
 
 - hosts: 'docker'
   roles:
-  - 'docker_ce'
+  - 'docker_ce_arm'
   - 'age'
 
 - hosts: 'glrunner'
   roles:
   - 'gitlab_runner'
 
-- hosts: 'kube'
+- hosts: 'k3s'
   roles:
-  - 'kube'
+  - 'k3s'
 
 - hosts: 'all'
   roles:
   - 'updates'
+
+- hosts: 'pi4'
+  roles:
+  - 'raspios'

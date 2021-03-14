@@ -17,20 +17,18 @@
     state: 'present'
     update_password: 'on_create'
 
-# note: this is split into a separate task because we don't want to constantly pinball
-#   the "docker" group off and back on to the admin user.
 - name: 'manage admin user groups'
   become: true
   user:
     name: 'katana'
     append: true
     groups:
-      - 'sudo'
-      - 'adm'
-      - 'systemd-journal'
-      - 'staff'
-      - 'ssh-enabled'
-      - 'devops'
+    - 'sudo'
+    - 'adm'
+    - 'systemd-journal'
+    - 'staff'
+    - 'ssh-enabled'
+    - 'devops'
 
 - name: 'manage admin user .ssh directory'
   become: true
@@ -43,7 +41,8 @@
 
 # ...let's make sure the SSH keys are up to date.
 - name: 'get latest admin keys checksum' # noqa 301
-  shell:
+  local_action:
+    module: 'shell'
     cmd: >
       curl -s --head "https://gitlab.cr.imson.co/api/v4/projects/107/repository/files/katana_keys?ref=master" \
         | grep x-gitlab-content-sha256 \
@@ -59,17 +58,30 @@
   register: 'local_admin_keys_checksum'
   changed_when: 'local_admin_keys_checksum.stat.checksum is not defined or local_admin_keys_checksum.stat.checksum != admin_keys_checksum.stdout'
 
-- name: 'ensure admin keys are latest' # noqa 503
-  become: true
-  become_user: 'katana'
-  get_url:
-    url: 'https://gitlab.cr.imson.co/cr.imson.co/ssh-keys/-/raw/master/katana_keys'
-    dest: '/home/katana/.ssh/authorized_keys'
-    owner: 'katana'
-    group: 'katana'
-    mode: '0700'
-    # todo: reuse the checksum from admin_keys_checksum.stdout somehow
-    # checksum: ''
+- name: 'update admin keys'
+  block:
+  - name: 'create local temp file' # noqa 305
+    local_action:
+      module: 'shell'
+      cmd: 'mktemp'
+    register: 'admin_temp'
+  - name: 'download latest admin keys'
+    local_action:
+      module: 'get_url'
+      url: 'https://gitlab.cr.imson.co/cr.imson.co/ssh-keys/-/raw/master/katana_keys'
+      dest: '{{ admin_temp.stdout }}'
+  - name: 'upload latest admin keys'
+    copy:
+      src: '{{ admin_temp.stdout }}'
+      dest: '/home/katana/.ssh/authorized_keys'
+      owner: 'katana'
+      group: 'katana'
+      mode: '0700'
+  - name: 'delete temp file'
+    local_action:
+      module: 'file'
+      path: '{{ admin_temp.stdout }}'
+      state: 'absent'
   when: 'local_admin_keys_checksum.changed'
 
 - name: 'determine if admin user has been configured'
