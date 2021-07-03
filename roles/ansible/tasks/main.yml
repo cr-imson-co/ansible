@@ -37,7 +37,7 @@
     group: 'devoops'
     mode: '0700'
 
-- name: 'get latest ansible keys checksum'
+- name: 'get latest ansible keys checksum' # noqa 301
   local_action:
     module: 'shell'
     cmd: >
@@ -56,7 +56,7 @@
 
 - name: 'update ansible keys'
   block:
-  - name: 'create local temp file'
+  - name: 'create local temp file' # noqa 305
     local_action:
       module: 'shell'
       cmd: 'mktemp'
@@ -87,3 +87,6 @@
     content: |
       # Allow the group "ansible" to run sudo (ALL) with NOPASSWD
       %devops       ALL=(ALL)       NOPASSWD: ALL
+    owner: 'root'
+    group: 'root'
+    mode: '0440'

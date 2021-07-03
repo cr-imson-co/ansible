@@ -71,6 +71,7 @@
       url: 'https://gitlab.cr.imson.co/cr.imson.co/ssh-keys/-/raw/master/katana_keys'
       dest: '{{ admin_temp.stdout }}'
   - name: 'upload latest admin keys'
+    become: true
     copy:
       src: '{{ admin_temp.stdout }}'
       dest: '/home/katana/.ssh/authorized_keys'
