@@ -13,7 +13,7 @@
     - name: 'get age repo'
       git:
         accept_hostkey: 'yes'
-        version: 'v1.0.0-beta5'
+        version: 'v1.0.0-rc.3'
         repo: 'https://github.com/FiloSottile/age.git'
         dest: '/home/devoops/age/'
         clone: 'yes'
